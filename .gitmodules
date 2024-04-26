@@ -1,0 +1,3 @@
+[submodule "wsindy_obj_base"]
+	path = wsindy_obj_base
+	url = https://github.com/dm973/wsindy_obj_base.git
