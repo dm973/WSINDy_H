@@ -1,23 +1,22 @@
 %% coverage in mt
-
+dr = '~/Dropbox/Boulder/research/data/WSINDy_H_data/WSINDy_H_materials/';
 for expnum = 1:4
 for ii=5
 mts_res = 80;
 
 if expnum==1
-load(['~/Desktop/expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
+load([dr,'expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
 plot_inds =[8:2:30];%exp1
 epn = [0.01 0.05];
 elseif expnum==3
-load(['~/Desktop/expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
+load([dr,'expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
 plot_inds = 1:10;%exp3
 epn = [0.01 0.03];
 elseif expnum==4
-load(['~/Desktop/expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
+load([dr,'expnum',num2str(expnum),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
 plot_inds = [1:2:12];%exp4
 epn = [0.01 0.03];
 end
-
 
 dats = {Herr_all(:,:,end-4:end),...
     Xerr_all(:,:,end-4:end),...
@@ -61,7 +60,7 @@ if expnum==2
     mQs=[1 5];
     for i=length(mQs)
         mQ = mQs(i);
-        load(['~/Desktop/expnum',num2str(expnum),'_mQ',num2str(mQ),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
+        load([dr,'expnum',num2str(expnum),'_mQ',num2str(mQ),'_mtsweep.mat'],'Herr_all','Xerr_all','X0err_all','X0_trueerr_all','tpr_all','mt_test_all','epz','mts','ppTf','train_inds')
         plot_inds = [7:5:48];%exp2
         ep = 0.05;
         
