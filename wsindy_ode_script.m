@@ -2,10 +2,10 @@ addpath(genpath('wsindy_obj_base'))
 %% get wsindy_data object
 traj_inds = [1:3];
 % traj_inds = [4 5 6 7 8 11];
-% traj_inds = [20 21]; %12-18, 22-26 too noisy, 19 too boxy
+traj_inds = [20 21]; %12-18, 22-26 too noisy, 19 too boxy
 % traj_inds = [27 28 29 30 31 32]; %12-18 too noisy, 19 too boxy
 % traj_inds = [20 2 5 27];
-
+traj_inds = [1:3 20 21];
 x_red = X_sigma_interp;
 Uobj = arrayfun(@(i)wsindy_data(x_red{i},t_sigma_interp{i}),traj_inds(:));
 arrayfun(@(U)U.coarsen(-500),Uobj);
@@ -26,12 +26,54 @@ rng_seed = rng().Seed; rng(rng_seed);
 Uobj.addnoise(noise_ratio,'seed',rng_seed);
 
 %% get lib tags
-polys = [0:5];
-trigs = [];
+polys = [];
+trigs = [0 1 3];
 tags_1 = get_tags(polys,[],nstates);
 tags_2 = get_tags([],trigs,nstates);
 tags = prodtags(tags_1,tags_2);
+toggle_trigprod=1;
 lib = library('tags',tags);
+include_crosstrig = 1;
+add_polytrig = 0;
+L=1;
+
+if toggle_trigprod
+    tags = [];
+    if ~isempty(trigs)
+        trigs_nz = trigs(trigs~=0);
+        for n=1:Uobj(1).nstates/2
+            tag_temp = zeros(length(trigs),Uobj(1).nstates);        
+            tag_temp_nz = zeros(length(trigs_nz),Uobj(1).nstates);
+            tags_1 = -1i*[tag_temp_nz(:,1:2*(n-1)) trigs_nz(:)*L(1) zeros(length(trigs_nz),1) tag_temp_nz(:,2*n+1:end)];
+            tags_2 = -1i*[tag_temp_nz(:,1:2*(n-1)) zeros(length(trigs_nz),1) trigs_nz(:)*L(1) tag_temp_nz(:,2*n+1:end)];
+            [ia, ib] = ndgrid(1:size(tags_1,1),1:size(tags_2,1));
+            tags = [tags;tags_1(ia,:) + tags_2(ib,:)];
+            tags_3 = 1i*[tag_temp(:,1:2*(n-1)) trigs(:)*L(1) zeros(length(trigs),1) tag_temp(:,2*n+1:end)];
+            tags_4 = 1i*[tag_temp(:,1:2*(n-1)) zeros(length(trigs),1) trigs(:)*L(1) tag_temp(:,2*n+1:end)];
+            [ia, ib] = ndgrid(1:size(tags_3,1),1:size(tags_4,1));
+            tags = [tags;tags_3(ia,:) + tags_4(ib,:)];
+            if include_crosstrig==1
+                tags_5 = 1i*[tag_temp(:,1:2*(n-1)) trigs(:)*L(1) zeros(length(trigs),1) tag_temp(:,2*n+1:end)];
+                tags_6 = -1i*[tag_temp_nz(:,1:2*(n-1)) zeros(length(trigs_nz),1) trigs_nz(:)*L(1) tag_temp_nz(:,2*n+1:end)];
+                [ia, ib] = ndgrid(1:size(tags_5,1),1:size(tags_6,1));
+                tags = [tags;tags_5(ia,:) + tags_6(ib,:)];
+                tags_7 = -1i*[tag_temp_nz(:,1:2*(n-1)) trigs_nz(:)*L(1) zeros(length(trigs_nz),1) tag_temp_nz(:,2*n+1:end)];
+                tags_8 = 1i*[tag_temp(:,1:2*(n-1)) zeros(length(trigs),1) trigs(:)*L(1) tag_temp(:,2*n+1:end)];
+                [ia, ib] = ndgrid(1:size(tags_7,1),1:size(tags_8,1));
+                tags = [tags;tags_7(ia,:) + tags_8(ib,:)];
+            end
+        end
+        tags = unique(tags(~all(tags==0,2),:),'rows');
+    end
+    if add_polytrig == 1
+        tags_3 = prodtags(get_tags(1,[],nstates),tags(sum(tags~=0,2)==1,:));
+    else
+        tags_3 = [];
+    end
+    custom_tags = get_tags(polys,[],nstates);
+    tags = [mat2cell(tags,ones(size(tags,1),1),size(tags,2));tags_3;mat2cell(custom_tags,ones(size(custom_tags,1),1),size(custom_tags,2))];
+    lib = library('tags',tags);
+end
 
 %% get test function
 % tf = arrayfun(@(U)testfcn(U,'phifuns','delta','meth','direct','param',1,'mtmin',1,'subinds',2),Uobj,'uni',0);
@@ -90,8 +132,8 @@ semilogx(loss_wsindy(2,:),loss_wsindy(1,:),'o-')
 %%
 
 N = 50;
-x = linspace(pi/3,7*pi/6,N);
-y = linspace(-2*pi/3,pi/3,N);
+x = linspace(0,3*pi/2,N);
+y = linspace(-pi,2*pi,N);
 [xx,yy] = meshgrid(x,y);
 
 F = arrayfun(@(x,y)rhs_learned([x y]),xx,yy,'uni',0);
@@ -103,8 +145,8 @@ for j=1:nstates
     colorbar
     hold on
     for i=1:ntraj
-        plot(Uobj(i).Uobs{:})
-        plot(Uobj(i).Uobs{:})
+        plot(Uobj(i).Uobs{:},'b-')
+        plot(xH0_learned{i}(:,1),xH0_learned{i}(:,2),'r--')
     end
     hold off
 end

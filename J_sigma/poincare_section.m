@@ -27,16 +27,17 @@ B0 = 1; a1 = 0.3; a2 = 0.3; kx1 = 3; ky1 = 1; kx2 = 1; ky2 = 3;
 B = @(q1,p1,q2,p2) B0 + a1*cos(kx1*q1+ky1*q2)+a2*cos(kx2*q1+ky2*q2);
 
 %%% sim params
-for ep = [0.1 0.27 0.6]
+for r2 = [0.5 1 4]
+for ep = [0.1]
 N = 32; %%% num traj
 % nc = 3000; np = 24;
 % t = linspace(0,2*pi*nc,ceil(nc*np/2/pi)); %%% timespan
-t = 0:0.001:(50/ep^2);
+t = 0:0.1:(50/ep^2);
 tol_ode = 10^-10; %%% sim tol
 X = [2 0] + linspace(0,2*pi,N)'*[0 1]; %%% diagonal X0 through pos space
 % X = rand(N,2)*pi;
 phX = phi_fun(X(:,1),X(:,2)); %%% evaluate reduced hamiltonian
-E = 1*ep^2; %%% fix energy
+E = r2/2*ep^2; %%% fix energy
 V = repmat(sqrt(2*E/ep^2)*[1 0],N,1); %%% initialize on section
 
 %%% dynamics
@@ -57,34 +58,39 @@ for nn=1:N
     % Sigma_traj{nn} = [traj{nn}(:,[1 3])  hypot(traj{nn}(:,2),traj{nn}(:,4))];
     disp(nn)
 end
-save(['~/Desktop/learnJsigma_ep',num2str(ep),'.mat'])
+% save(['~/Desktop/learnJsigma_ep',num2str(ep),'.mat'])
+save(['~/Desktop/learnJsigma_ep',num2str(ep),'_r2',num2str(r2),'.mat'])
+end
 end
 %% 
 
 % dr = '/home/danielmessenger/Dropbox/Boulder/research/data/WENDy_data/ode_data/'; 
 % load([dr,'GC_ep0.04_vperp0.30803_Ephi0.18823.mat'])
 % load([dr,'GC_ep0.02_vperp0.43563_Ephi0.18823.mat'])
-ep = 0.1;%[0.1 0.27 0.6];
+ep = 0.6;%[0.1 0.27 0.6];
 load(['~/Desktop/learnJsigma_ep',num2str(ep),'.mat'])
 %vars = {'x_red','t','true_prod_tags','true_coeff','params','rhs_p','Tfs','V0','x_full'};
 
 clf
 X_sigma = cell(N,1);
-X_sigma_r = cell(N,1);
 X_sigma_interp = cell(N,1);
 t_sigma = cell(N,1);
 t_sigma_interp = cell(N,1);
-tol=mean(diff(t));
+tol=2*mean(diff(t));
 dt_interp = length(t)/2000;
 
 for nn=1:N
-    xx = find(abs(traj{nn}(:,4))<tol);    % [~,xx]=findpeaks(-abs(traj{nn}(:,4)));
-    yy = find(traj{nn}(xx,2)>=0);
-    xx=xx(yy);
+    tic;
+    xx = find(abs(traj{nn}(:,4))<tol);    % [~,xx]=findpeaks(-abs(traj{nn}(:,4)));    
+    Xtemp = traj{nn}(xx,1:3);    
+    tnew = t(xx);
 
-    X_sigma{nn} = real(traj{nn}(xx,[1 3]));
-    X_sigma_r{nn} = [real(traj{nn}(xx,[1 3])) traj{nn}(xx,2)];
-    t_sigma{nn} = t(xx);
+    % [tnew,y0,iout,jout] = intersections(t,t*0,t,traj{nn}(:,4));
+    % Xtemp = interp1(t,traj{nn}(:,1:3),tnew);    
+    yy = find(Xtemp(:,2)>=0);
+
+    X_sigma{nn} = real(Xtemp(yy,[1 3]));
+    t_sigma{nn} = tnew(yy);
     t_sigma_interp{nn} = t_sigma{nn}(1):dt_interp:t_sigma{nn}(end);
 
     X_sigma_interp{nn} = interp1(t_sigma{nn},X_sigma{nn},t_sigma_interp{nn});
@@ -92,14 +98,22 @@ for nn=1:N
     % scatter(X_sigma{nn}(:,1),X_sigma{nn}(:,2),'.')
     scatter(X_sigma_interp{nn}(:,1),X_sigma_interp{nn}(:,2),'.')
     hold on
+    disp([nn toc])
 end
 plot(X(:,1),X(:,2),'ro','linewidth',3)
 hold off
 
-%%
 
-for ind=1
-    plot(X_sigma{ind}(:,1),X_sigma{ind}(:,2),'o-')
+B0 = 1; a1 = 0.3; a2 = 0.3; kx1 = 3; ky1 = 1; kx2 = 1; ky2 = 3;
+B = @(q1,p1,q2,p2) B0 + a1*cos(kx1*q1+ky1*q2)+a2*cos(kx2*q1+ky2*q2);
+B =@(x) B(x(1),0,x(2),0);
+Bgrad=@(x) [-a1*kx1*sin(kx1*x(1)+ky1*x(2))-a2*kx2*sin(kx2*x(1)+ky2*x(2)),... 
+    -a1*ky1*sin(kx1*x(1)+ky1*x(2))-a2*ky2*sin(kx2*x(1)+ky2*x(2)), 0];
+
+clf
+for ind=1:N
+    plot(X_sigma{ind}(:,1),X_sigma{ind}(:,2),'.')
+    hold on
     % plot(PS_r{ind}(:,3),'o-')
     % plot(traj{ind}(:,1),'.')
     % plot(Sigma_traj{ind}(:,1),Sigma_traj{ind}(:,2),'.-')
