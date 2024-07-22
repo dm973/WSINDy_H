@@ -1,4 +1,4 @@
-%% Z pinch
+%% Z pinch data
 ep = 0.1;%[0.1 0.27 0.6];
 r2 = 2;
 load(['~/Desktop/learnJsigma_ep',num2str(ep),'_r2',num2str(r2),'.mat'],'traj','t')
@@ -40,7 +40,7 @@ Bgrad = @(x) [-a1*kx1*sin(kx1*x(1)+ky1*x(2))-a2*kx2*sin(kx2*x(1)+ky2*x(2)),...
 dfuns = {@(x)0,@(x)1,@(x)B(x)/x(3)};
 Afuns = {@(x)0,@(x)1,@(x)0;@(x)-1,@(x)0,@(x)0;@(x)0,@(x)0,@(x)0};
 
-%%% build lib 
+%% build lib 
 addpath(genpath('../wsindy_obj_base'))
 
 % lib = library('nstates',3);
@@ -56,13 +56,28 @@ addpath(genpath('../wsindy_obj_base'))
 % % lib.add_terms(tags);
 
 lib = library('nstates',3);
-lib2 = get_trigprod_lib(2,[0 1 2 3 6],1,[],1,0);
+lib2 = get_trigprod_lib(2,[0 kx1:kx1:3*kx1 ky1:ky1:3*ky1],1,[],1,0);
 tags = cellfun(@(t)[t 2],lib2.tags,'un',0);
-Bpows= [-1 -3 -5];
+Bpows= [-1 -3];
 Bpowterms = arrayfun(@(i)getBpowterm(Bvar,i,3),Bpows);
 for j=1:length(Bpows)
     cellfun(@(tt)lib.add_terms(prodterm(Bpowterms(j),term('ftag',tt,'coeff',0.5))),tags);
 end
+
+% lib = library('nstates',3);
+% lib2 = library('nstates',3);
+% fmax = 4;
+% freq = [[1 3];[3 1]];
+% tags = trigtags(freq,fmax);
+% tags = prodtags(tags,[]);
+% cellfun(@(tt)lib2.add_terms(term('ftag',[tt 2],'coeff',0.5,'gradon',1)),tags,'un',0);
+% Bpows= [-1 -3];
+% Bpowterms = arrayfun(@(i)getBpowterm(Bvar,i,3),Bpows);
+% for j=1:length(Bpows)
+%     lib.add_terms(cellfun(@(tt)prodterm(Bpowterms(j),tt,'gradon',1),lib2.terms,'un',0));
+% end
+
+%% get G b
 
 Jfuns = cellfun(@(tt) @(x)tt.evalterm(x), lib.terms, 'Un',0);
 Jgradfuns = cellfun(@(tt) @(x)cell2mat(tt.evalgrads(x)), lib.terms, 'Un',0);
@@ -102,7 +117,8 @@ maxits = length(Wsub);
 max_constrow = 1000;
 
 for n=1:maxits
-    biginds_new = min(1,vecnorm(Jmat(:,2:end))/norm(Jmat(:,1))).*abs(Wsub')>=lambda;
+    % biginds_new = min(1,vecnorm(Jmat(:,2:end))/norm(Jmat(:,1))).*abs(Wsub')>=lambda;
+    biginds_new = vecnorm(Jmat(:,2:end))/norm(Jmat(:,1)).*abs(Wsub')>=lambda;
     if ~isequal(biginds,biginds_new)
         biginds = biginds_new;
         % subD = true(size(D,1),1);
@@ -213,7 +229,7 @@ Q = arrayfun(@(x,y)capfun(J([x y r])),xx,yy);
 ics = cell2mat(cellfun(@(x)x(1,1:2),X_sigma(:),'un',0));
 nc = 40;
 
-clf
+figure(N+1);clf
 contourf(xx,yy,Q,nc,'edgecolor','k')
 hold on
 for j=1:Nmax
@@ -235,7 +251,7 @@ set(gca,'fontsize',20)
 
 %% save
 
-save('~/Desktop/J_sigma_ep01_r2_all.mat','Ws','errs_J','errs_J0','lib','lambda','tol','X_sigma','t_sigma','x_Ls','B','Bgrad','dfuns','Afuns','Jfuns','Jgradfuns','max_constrow','J_tol')
+save('~/Desktop/J_sigma_ep01_r2_all_7-21.mat','Ws','errs_J','errs_J0','lib','lambda','tol','X_sigma','t_sigma','x_Ls','B','Bgrad','dfuns','Afuns','Jfuns','Jgradfuns','max_constrow','J_tol')
 
 % %% view phase plot vector field
 % 
