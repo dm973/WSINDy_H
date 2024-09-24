@@ -4,7 +4,7 @@ addpath(genpath('wsindy_obj_base'))
 clc;
 rng('shuffle')
 
-expnum = 3; % experiment number
+expnum = 1; % experiment number
 ep = 0.05; % perturbation param
 ppTf = 10; % points per fast mod6
 ncyc = 4; % number of slow modes observed
