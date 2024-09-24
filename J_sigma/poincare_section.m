@@ -1,4 +1,6 @@
 addpath(genpath('wsindy_obj_base'))
+addpath(genpath('../'))
+
 %%% E potential
 f_E=[1 2 3];
 coeff_E=1./(1:length(f_E));
@@ -27,17 +29,20 @@ B0 = 1; a1 = 0.3; a2 = 0.3; kx1 = 3; ky1 = 1; kx2 = 1; ky2 = 3;
 B = @(q1,p1,q2,p2) B0 + a1*cos(kx1*q1+ky1*q2)+a2*cos(kx2*q1+ky2*q2);
 
 %%% sim params
-for r2 = [0.5 1 4]
-for ep = [0.1]
-N = 32; %%% num traj
+for r2 = [0.5 1 2 4]
+for ep = [0.05 0.15 0.27]
+Ny = 16; %%% num traj
 % nc = 3000; np = 24;
 % t = linspace(0,2*pi*nc,ceil(nc*np/2/pi)); %%% timespan
-t = 0:0.1:(50/ep^2);
+t = 0:0.001/ep^2:(50/ep^2);
 tol_ode = 10^-10; %%% sim tol
-X = [2 0] + linspace(0,2*pi,N)'*[0 1]; %%% diagonal X0 through pos space
+X = [2 0] + linspace(0,2*pi,Ny)'*[0 1]; %%% diagonal X0 through pos space
+X = [X;[0 0] + linspace(0,2*pi,Ny)'*[0 1]]; %%% diagonal X0 through pos space
+X = [X;[-2 0] + linspace(0,2*pi,Ny)'*[0 1]]; %%% diagonal X0 through pos space
 % X = rand(N,2)*pi;
 phX = phi_fun(X(:,1),X(:,2)); %%% evaluate reduced hamiltonian
 E = r2/2*ep^2; %%% fix energy
+N = size(X,1);
 V = repmat(sqrt(2*E/ep^2)*[1 0],N,1); %%% initialize on section
 
 %%% dynamics
@@ -51,7 +56,7 @@ rhs_p = @(x,params) rhs_fun(features,params,x);
 
 traj = cell(N,1);
 % Sigma_traj = cell(N,1);
-for nn=1:N
+parfor nn=1:N
     x0 = reshape([X(nn,:);V(nn,:)],[],1)';
     options_ode_sim = odeset('RelTol',tol_ode,'AbsTol',tol_ode*ones(1,length(x0)));
     [~,traj{nn}]=ode15s(@(t,x)rhs_p(x,params),t,x0,options_ode_sim);
@@ -59,7 +64,7 @@ for nn=1:N
     disp(nn)
 end
 % save(['~/Desktop/learnJsigma_ep',num2str(ep),'.mat'])
-save(['~/Desktop/learnJsigma_ep',num2str(ep),'_r2',num2str(r2),'.mat'])
+save(['~/Desktop/Jsigma_data_ep',num2str(ep),'_r2',num2str(r2),'.mat'])
 end
 end
 %% 

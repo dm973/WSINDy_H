@@ -1,13 +1,15 @@
 %% Z pinch data
-ep = 0.1;%[0.1 0.27 0.6];
-r2 = 2;
-load(['~/Desktop/learnJsigma_ep',num2str(ep),'_r2',num2str(r2),'.mat'],'traj','t')
-N = length(traj);
+ep = 0.15;%[0.1 0.27 0.6];
+r2 = 1;
+% load(['~/Desktop/learnJsigma_ep',num2str(ep),'_r2',num2str(r2),'.mat'],'traj','t','N')
+load(['~/Desktop/Jsigma_data_ep',num2str(ep),'_r2',num2str(r2),'.mat'],'traj','t','N')
+N = length(traj)
 tol = mean(diff(t));
-load('~/Desktop/J_sigma_ep01_singletraj_results.mat','Ws');
-P =  dist(Ws~=0);
-[~,I] = sort(P(:,1),'ascend');
-inds = I(1:end);
+% load('~/Desktop/J_sigma_ep01_singletraj_results.mat','Ws');
+% P =  dist(Ws~=0);
+% [~,I] = sort(P(:,1),'ascend');
+% inds = I(1:end);
+inds = 1:N;
 
 Ws = []; errs_J = []; errs_J0 = [];
 tic;
@@ -64,18 +66,18 @@ for j=1:length(Bpows)
     cellfun(@(tt)lib.add_terms(prodterm(Bpowterms(j),term('ftag',tt,'coeff',0.5))),tags);
 end
 
-% lib = library('nstates',3);
-% lib2 = library('nstates',3);
-% fmax = 4;
-% freq = [[1 3];[3 1]];
-% tags = trigtags(freq,fmax);
-% tags = prodtags(tags,[]);
-% cellfun(@(tt)lib2.add_terms(term('ftag',[tt 2],'coeff',0.5,'gradon',1)),tags,'un',0);
-% Bpows= [-1 -3];
-% Bpowterms = arrayfun(@(i)getBpowterm(Bvar,i,3),Bpows);
-% for j=1:length(Bpows)
-%     lib.add_terms(cellfun(@(tt)prodterm(Bpowterms(j),tt,'gradon',1),lib2.terms,'un',0));
-% end
+lib = library('nstates',3);
+lib2 = library('nstates',3);
+fmax = 5;
+freq = [[1 3];[3 1]];
+tags = trigtags(freq,fmax);
+tags = prodtags(tags,[]);
+cellfun(@(tt)lib2.add_terms(term('ftag',[tt 2],'coeff',0.5,'gradon',1)),tags,'un',0);
+Bpows= [-1 -3 -5];
+Bpowterms = arrayfun(@(i)getBpowterm(Bvar,i,3),Bpows);
+for j=1:length(Bpows)
+    lib.add_terms(cellfun(@(tt)prodterm(Bpowterms(j),tt,'gradon',1),lib2.terms,'un',0));
+end
 
 %% get G b
 
@@ -98,6 +100,10 @@ for ind=1:Nmax
     disp([ind toc])
 end
 
+% G = [[J0] ----- [xdot*(d*gradJ_i) - A*gradJ_i] -----]
+% min||G*w||^2 s.t. w(1) = 1, D*w > 0
+% min||G*w||^2 s.t. ||w|| = 1, D*w > 0 
+
 %% enforcing J0 - stabilized way
 tol = min(D(:,1))/2;
 b = G(:,1);
@@ -115,6 +121,8 @@ W = [1;Wsub];
 %drawnow
 maxits = length(Wsub);
 max_constrow = 1000;
+
+% ||w_iJ_i||/||J0|| >= lambda
 
 for n=1:maxits
     % biginds_new = min(1,vecnorm(Jmat(:,2:end))/norm(Jmat(:,1))).*abs(Wsub')>=lambda;
@@ -201,6 +209,7 @@ for ind = 1:Nmax
     [t_L,x_Ls{ind}]=ode15s(@(t,x)rhs_learned_xy(x),t,x0,options_ode_sim);
     % [t_L,x_L]=ode15s(@(t,x)rhs_learned_xy_0(x),t,x0,options_ode_sim);
     
+    figure(33);
     clf; 
     subplot(2,1,1)
     plot(t,x,t_L,x_Ls{ind},'--','linewidth',3)
@@ -211,8 +220,24 @@ for ind = 1:Nmax
 end
 
 %% contour plot of J sigma and trajectories
-% load('~/Desktop/J_sigma_ep01_multitraj_results.mat','Ws','X_sigma','t_sigma','x_Ls','Jfuns')
-% load('~/Desktop/J_sigma_ep01_multitraj_results_trig.mat','Ws','X_sigma','t_sigma','x_Ls','Jfuns')
+addpath(genpath('../wsindy_obj_base'))
+% J_sigma_ep01_multitraj_results.mat
+% J_sigma_ep01_multitraj_results_trig.mat
+% J_sigma_ep01_r2_all_7-20.mat
+% J_sigma_ep01_r2_all_7-21.mat
+% J_sigma_ep0.1_r2_all_7-22.mat
+% J_sigma_ep01_r2_all.mat
+% J_sigma_ep01_singletraj_results.mat
+load('~/Desktop/J_sigma_ep01_r2_all.mat','lib','ep','Ws','X_sigma','t_sigma','x_Ls','Jfuns','r2')
+Nmax = length(X_sigma);
+if ~exist('r2','var')
+    r2 = 2;
+end
+if ~exist('ep','var')
+    ep = 0.1;
+end
+r = sqrt(r2);
+
 W = Ws;
 J = @(x) get_J(x,Jfuns,W);
 Ng = 80;
@@ -229,7 +254,7 @@ Q = arrayfun(@(x,y)capfun(J([x y r])),xx,yy);
 ics = cell2mat(cellfun(@(x)x(1,1:2),X_sigma(:),'un',0));
 nc = 40;
 
-figure(N+1);clf
+figure(Nmax+2);clf
 contourf(xx,yy,Q,nc,'edgecolor','k')
 hold on
 for j=1:Nmax
@@ -251,7 +276,7 @@ set(gca,'fontsize',20)
 
 %% save
 
-save('~/Desktop/J_sigma_ep01_r2_all_7-21.mat','Ws','errs_J','errs_J0','lib','lambda','tol','X_sigma','t_sigma','x_Ls','B','Bgrad','dfuns','Afuns','Jfuns','Jgradfuns','max_constrow','J_tol')
+% save(['~/Desktop/J_sigma_ep',num2str(ep),'_r',num2str(r2),'_all_7-22.mat'],'Ws','errs_J','errs_J0','lib','lambda','tol','X_sigma','t_sigma','x_Ls','B','Bgrad','dfuns','Afuns','Jfuns','Jgradfuns','max_constrow','J_tol')
 
 % %% view phase plot vector field
 % 
