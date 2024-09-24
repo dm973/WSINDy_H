@@ -4,7 +4,7 @@ addpath(genpath('wsindy_obj_base'))
 clc;
 rng('shuffle')
 
-expnum = 1; % experiment number
+expnum = 4; % experiment number
 ep = 0.05; % perturbation param
 ppTf = 10; % points per fast mod6
 ncyc = 4; % number of slow modes observed
@@ -44,7 +44,7 @@ subind = [];
 reg_0_param = 10^-inf;
 toggle_jointthresh = 1;
 L0_meth = 'MSTLS';
-toggle_wendy = 0;
+toggle_wendy = 10;
 discrep_type = 2;
 discrep_its = 0;
 discrep_step = 0.75;
